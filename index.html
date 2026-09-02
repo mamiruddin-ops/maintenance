@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<title>أوامر الشغل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14171A;
+    --surface:#1E2226;
+    --surface-raised:#262B30;
+    --border:#2C3238;
+    --text:#EDEEEF;
+    --text-dim:#9BA3AA;
+    --amber:#F2A93B;
+    --amber-dim:#4A3A1E;
+    --green:#4FAE7C;
+    --green-dim:#1E3327;
+    --red:#E4604D;
+    --red-dim:#3A211D;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    font-family:'Tajawal', system-ui, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    overscroll-behavior:none;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+
+  /* Header */
+  header{
+    padding:18px 20px 14px;
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0;
+    background:var(--bg);
+    z-index:5;
+  }
+  header .eyebrow{
+    font-size:12.5px;
+    color:var(--amber);
+    font-weight:700;
+    margin-bottom:2px;
+  }
+  header h1{
+    margin:0;
+    font-size:22px;
+    font-weight:900;
+    letter-spacing:-0.3px;
+  }
+  .counts{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+  }
+  .count-pill{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:8px 10px;
+    text-align:center;
+  }
+  .count-pill .n{ font-size:18px; font-weight:900; display:block; }
+  .count-pill .l{ font-size:11px; color:var(--text-dim); }
+  .count-pill.new .n{ color:var(--amber); }
+  .count-pill.progress .n{ color:#6FA8E8; }
+  .count-pill.done .n{ color:var(--green); }
+
+  /* List */
+  main{ flex:1; padding:14px 16px 100px; }
+  .empty{
+    text-align:center;
+    color:var(--text-dim);
+    padding:60px 20px;
+    font-size:14px;
+    line-height:1.9;
+  }
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    cursor:pointer;
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .card:active{ transform:scale(0.98); border-color:#3A4046; }
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .card-title{ font-size:15.5px; font-weight:700; line-height:1.4; }
+  .badge{
+    font-size:11px;
+    font-weight:700;
+    padding:4px 10px;
+    border-radius:20px;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .badge.new{ background:var(--amber-dim); color:var(--amber); }
+  .badge.progress{ background:#1E2C3D; color:#6FA8E8; }
+  .badge.done{ background:var(--green-dim); color:var(--green); }
+  .card-meta{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:12.5px;
+    color:var(--text-dim);
+  }
+  .assignee{ display:flex; align-items:center; gap:6px; }
+  .avatar{
+    width:20px; height:20px;
+    border-radius:50%;
+    background:var(--surface-raised);
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:700;
+    color:var(--amber);
+    border:1px solid var(--border);
+  }
+
+  /* FAB */
+  .fab{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%);
+    max-width:480px;
+    width:calc(100% - 32px);
+    margin:0 16px;
+  }
+  .fab button{
+    width:100%;
+    background:var(--amber);
+    color:#1A1300;
+    border:none;
+    border-radius:14px;
+    padding:16px;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:900;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    box-shadow:0 8px 24px rgba(242,169,59,0.25);
+    cursor:pointer;
+  }
+  .fab button:active{ transform:scale(0.98); }
+
+  /* Sheet */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.55);
+    opacity:0; pointer-events:none;
+    transition:opacity .2s ease;
+    z-index:20;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    max-width:480px;
+    margin:0 auto;
+    background:var(--surface);
+    border-radius:20px 20px 0 0;
+    border:1px solid var(--border);
+    border-bottom:none;
+    padding:20px 20px calc(24px + env(safe-area-inset-bottom));
+    transform:translateY(100%);
+    transition:transform .28s cubic-bezier(.32,.72,0,1);
+    z-index:21;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  .sheet.show{ transform:translateY(0); }
+  .sheet-handle{
+    width:36px; height:4px;
+    background:var(--border);
+    border-radius:4px;
+    margin:0 auto 16px;
+  }
+  .sheet h2{ font-size:18px; margin:0 0 16px; font-weight:900; }
+  label{
+    display:block;
+    font-size:12.5px;
+    color:var(--text-dim);
+    font-weight:700;
+    margin-bottom:6px;
+    margin-top:14px;
+  }
+  label:first-of-type{ margin-top:0; }
+  input, textarea, select{
+    width:100%;
+    background:var(--surface-raised);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:10px;
+    padding:12px 14px;
+    font-family:inherit;
+    font-size:14.5px;
+    -webkit-user-select:text;
+    user-select:text;
+  }
+  textarea{ resize:none; min-height:70px; }
+  .chip-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{
+    padding:9px 14px;
+    border-radius:20px;
+    background:var(--surface-raised);
+    border:1px solid var(--border);
+    font-size:13px;
+    font-weight:700;
+    color:var(--text-dim);
+    cursor:pointer;
+  }
+  .chip.active{ background:var(--amber-dim); border-color:var(--amber); color:var(--amber); }
+  .submit-btn{
+    width:100%;
+    background:var(--amber);
+    color:#1A1300;
+    border:none;
+    border-radius:12px;
+    padding:15px;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:900;
+    margin-top:20px;
+    cursor:pointer;
+  }
+  .submit-btn:disabled{ opacity:0.4; }
+
+  /* Detail sheet status buttons */
+  .status-row{ display:flex; gap:8px; margin-top:8px; }
+  .status-btn{
+    flex:1;
+    padding:12px 6px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--surface-raised);
+    color:var(--text-dim);
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .status-btn.new.active{ background:var(--amber-dim); border-color:var(--amber); color:var(--amber); }
+  .status-btn.progress.active{ background:#1E2C3D; border-color:#6FA8E8; color:#6FA8E8; }
+  .status-btn.done.active{ background:var(--green-dim); border-color:var(--green); color:var(--green); }
+  .detail-desc{
+    font-size:14px;
+    color:var(--text-dim);
+    line-height:1.8;
+    margin-top:4px;
+  }
+  .toast{
+    position:fixed;
+    top:16px; left:50%;
+    transform:translateX(-50%) translateY(-140%);
+    background:var(--surface-raised);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:11px 18px;
+    border-radius:12px;
+    font-size:13px;
+    font-weight:700;
+    z-index:30;
+    transition:transform .25s ease;
+    display:flex; align-items:center; gap:8px;
+  }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+  .toast .dot{ width:8px; height:8px; border-radius:50%; background:var(--green); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="eyebrow">خط الإنتاج — الصيانة</div>
+    <h1>أوامر الشغل</h1>
+    <div class="counts">
+      <div class="count-pill new"><span class="n" id="countNew">0</span><span class="l">جديد</span></div>
+      <div class="count-pill progress"><span class="n" id="countProgress">0</span><span class="l">جاري</span></div>
+      <div class="count-pill done"><span class="n" id="countDone">0</span><span class="l">منجز</span></div>
+    </div>
+  </header>
+
+  <main id="list"></main>
+
+  <div class="fab">
+    <button id="openAdd">+ أمر شغل جديد</button>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- Add sheet -->
+<div class="sheet" id="addSheet">
+  <div class="sheet-handle"></div>
+  <h2>أمر شغل جديد</h2>
+
+  <label>العنوان</label>
+  <input id="f_title" placeholder="مثال: تسرب زيت بمكينة الفرم" />
+
+  <label>الوصف</label>
+  <textarea id="f_desc" placeholder="تفاصيل العطل أو الملاحظة..."></textarea>
+
+  <label>تعيين لـ</label>
+  <div class="chip-row" id="techChips"></div>
+
+  <label>الأولوية</label>
+  <div class="chip-row" id="priorityChips">
+    <div class="chip" data-p="عادي">عادي</div>
+    <div class="chip" data-p="عاجل">عاجل</div>
+    <div class="chip" data-p="حرج">حرج</div>
+  </div>
+
+  <button class="submit-btn" id="submitAdd">إضافة أمر الشغل</button>
+</div>
+
+<!-- Detail sheet -->
+<div class="sheet" id="detailSheet">
+  <div class="sheet-handle"></div>
+  <h2 id="d_title"></h2>
+  <div style="font-size:12.5px; color:var(--text-dim); display:flex; gap:10px; align-items:center;">
+    <span id="d_assignee"></span>
+    <span>·</span>
+    <span id="d_priority"></span>
+  </div>
+  <div class="detail-desc" id="d_desc"></div>
+
+  <label>الحالة</label>
+  <div class="status-row">
+    <button class="status-btn new" data-s="جديد">جديد</button>
+    <button class="status-btn progress" data-s="جاري">جاري التنفيذ</button>
+    <button class="status-btn done" data-s="منجز">منجز</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="dot"></span><span id="toastText"></span></div>
+
+<script>
+const technicians = ["أحمد", "خالد", "سعيد", "ماجد", "فهد"];
+
+let orders = [
+  { id:1, title:"عطل بسير النقل الرئيسي", desc:"السير يهتز بشكل غير طبيعي عند التشغيل بالسرعة القصوى.", tech:"أحمد", priority:"عاجل", status:"جاري" },
+  { id:2, title:"صيانة دورية لمروحة السحب", desc:"صيانة وقائية مجدولة كل 30 يوم.", tech:"خالد", priority:"عادي", status:"جديد" },
+  { id:3, title:"استبدال حساس حرارة الفرن", desc:"القراءة غير مستقرة، تم استبدال الحساس والتأكد من المعايرة.", tech:"سعيد", priority:"حرج", status:"منجز" },
+];
+let nextId = 4;
+let selectedTech = null;
+let selectedPriority = "عادي";
+let activeOrderId = null;
+
+const listEl = document.getElementById('list');
+const overlay = document.getElementById('overlay');
+const addSheet = document.getElementById('addSheet');
+const detailSheet = document.getElementById('detailSheet');
+
+function statusClass(s){
+  if(s === "جديد") return "new";
+  if(s === "جاري") return "progress";
+  return "done";
+}
+
+function render(){
+  listEl.innerHTML = "";
+  if(orders.length === 0){
+    listEl.innerHTML = `<div class="empty">ما فيه أوامر شغل حالياً<br>اضغط "+ أمر شغل جديد" بالأسفل</div>`;
+  } else {
+    // newest first
+    [...orders].reverse().forEach(o => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.onclick = () => openDetail(o.id);
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="card-title">${o.title}</div>
+          <div class="badge ${statusClass(o.status)}">${o.status}</div>
+        </div>
+        <div class="card-meta">
+          <div class="assignee">
+            <div class="avatar">${o.tech ? o.tech[0] : "?"}</div>
+            <span>${o.tech || "غير معيّن"}</span>
+          </div>
+          <span>${o.priority}</span>
+        </div>
+      `;
+      listEl.appendChild(card);
+    });
+  }
+  document.getElementById('countNew').textContent = orders.filter(o=>o.status==="جديد").length;
+  document.getElementById('countProgress').textContent = orders.filter(o=>o.status==="جاري").length;
+  document.getElementById('countDone').textContent = orders.filter(o=>o.status==="منجز").length;
+}
+
+function showSheet(sheet){
+  overlay.classList.add('show');
+  sheet.classList.add('show');
+}
+function hideSheets(){
+  overlay.classList.remove('show');
+  addSheet.classList.remove('show');
+  detailSheet.classList.remove('show');
+}
+
+// --- Add flow ---
+const techChipsEl = document.getElementById('techChips');
+technicians.forEach(t => {
+  const chip = document.createElement('div');
+  chip.className = 'chip';
+  chip.textContent = t;
+  chip.onclick = () => {
+    selectedTech = t;
+    [...techChipsEl.children].forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  };
+  techChipsEl.appendChild(chip);
+});
+
+document.querySelectorAll('#priorityChips .chip').forEach(chip => {
+  chip.onclick = () => {
+    selectedPriority = chip.dataset.p;
+    document.querySelectorAll('#priorityChips .chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+  };
+});
+document.querySelector('#priorityChips .chip').classList.add('active');
+
+document.getElementById('openAdd').onclick = () => {
+  document.getElementById('f_title').value = "";
+  document.getElementById('f_desc').value = "";
+  selectedTech = null;
+  selectedPriority = "عادي";
+  [...techChipsEl.children].forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#priorityChips .chip').forEach(c=>c.classList.remove('active'));
+  document.querySelector('#priorityChips .chip').classList.add('active');
+  showSheet(addSheet);
+};
+
+document.getElementById('submitAdd').onclick = () => {
+  const title = document.getElementById('f_title').value.trim();
+  const desc = document.getElementById('f_desc').value.trim();
+  if(!title){ 
+    document.getElementById('f_title').focus();
+    return;
+  }
+  orders.push({
+    id: nextId++,
+    title,
+    desc: desc || "بدون وصف إضافي.",
+    tech: selectedTech,
+    priority: selectedPriority,
+    status: "جديد"
+  });
+  hideSheets();
+  render();
+  showToast(selectedTech ? `تم التعيين لـ ${selectedTech}` : "تم إضافة أمر الشغل");
+};
+
+// --- Detail flow ---
+function openDetail(id){
+  activeOrderId = id;
+  const o = orders.find(x => x.id === id);
+  document.getElementById('d_title').textContent = o.title;
+  document.getElementById('d_assignee').textContent = o.tech || "غير معيّن";
+  document.getElementById('d_priority').textContent = "أولوية: " + o.priority;
+  document.getElementById('d_desc').textContent = o.desc;
+  document.querySelectorAll('.status-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.s === o.status);
+  });
+  showSheet(detailSheet);
+}
+
+document.querySelectorAll('.status-btn').forEach(btn => {
+  btn.onclick = () => {
+    const o = orders.find(x => x.id === activeOrderId);
+    o.status = btn.dataset.s;
+    document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+    showToast("تم تحديث الحالة إلى: " + o.status);
+  };
+});
+
+overlay.onclick = hideSheets;
+
+// --- Toast ---
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  document.getElementById('toastText').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+render();
+</script>
+</body>
+</html>
